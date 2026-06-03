@@ -17,4 +17,13 @@ dependencies = [
 # Engine XTTS v2 (qualidade máxima). Dependência pesada (PyTorch) e opcional —
 # instale só quando quiser usá-lo: `uv sync --extra xtts`.
 [project.optional-dependencies]
-xtts = ["coqui-tts>=0.24"]
+# [cpu] traz torch/torchaudio CPU (esta máquina não tem GPU/CUDA).
+# transformers<5: o coqui-tts importa isin_mps_friendly, removido no 5.x.
+# torch<2.9: o 2.9+ exige torchcodec+FFmpeg para I/O de áudio; abaixo disso
+# o I/O usa soundfile, mantendo o backend auto-contido (sem dep de sistema).
+xtts = [
+    "coqui-tts[cpu]>=0.27",
+    "transformers>=4.57,<5",
+    "torch>=2.2,<2.9",
+    "torchaudio>=2.2,<2.9",
+]
