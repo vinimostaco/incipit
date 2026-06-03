@@ -1,0 +1,67 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# Node
+node_modules/
+dist/
+.npm/
+.pnp.*
+.yarn/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Rust / Tauri
+target/
+**/*.rs.bk
+Cargo.lock.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build outputs
+build/
+out/
+*.app
+*.dmg
+*.exe
+*.msi
+*.AppImage
+*.deb
+
+# Modelos de TTS (grandes — gerenciar separado)
+models/
+*.onnx
+*.bin
+*.pth
+
+# Logs
+*.log
+logs/
