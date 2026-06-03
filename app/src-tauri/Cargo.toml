@@ -1,5 +1,5 @@
 [package]
-name = "app"
+name = "incipit"
 version = "0.1.0"
 description = "incipit — leitor de texto por voz"
 authors = ["vinimostaco <vini.mostaco@gmail.com>"]
