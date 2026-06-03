@@ -6,8 +6,15 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "vinimostaco", email = "vini.mostaco@gmail.com" }]
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "ebooklib>=0.20",
     "fastapi>=0.136.3",
+    "piper-tts>=1.4.2",
     "pypdf>=6.12.2",
     "uvicorn[standard]>=0.48.0",
 ]
+
+# Engine XTTS v2 (qualidade máxima). Dependência pesada (PyTorch) e opcional —
+# instale só quando quiser usá-lo: `uv sync --extra xtts`.
+[project.optional-dependencies]
+xtts = ["coqui-tts>=0.24"]

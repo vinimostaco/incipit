@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 
+from incipit.api import router
+
 app = FastAPI(title="incipit-backend")
+app.include_router(router)
 
 
 @app.get("/health")
