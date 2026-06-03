@@ -1,0 +1,11 @@
+<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- caderninho aberto -->
+  <path d="M31 18C25 14 15 13 8 15.5V44.5C15 42 25 43 31 46.5Z" fill="#3a3528" stroke="#d8a657" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M31 18C36 14.5 41 13.5 45 15.5V44.5C41 42.5 36 43 31 46.5Z" fill="#262a34" stroke="#d8a657" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M31 18V46.5" stroke="#d8a657" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- linhas da página esquerda -->
+  <path d="M13 23H24M13 29H24M13 35H22" stroke="#d8a657" stroke-width="1.6" stroke-linecap="round" opacity="0.8"/>
+  <!-- volume / ondas sonoras ao lado -->
+  <path d="M50 26C53.5 29 53.5 35 50 38" stroke="#d8a657" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M54.5 21C61 27.5 61 36.5 54.5 43" stroke="#d8a657" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

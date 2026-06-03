@@ -1,11 +1,13 @@
 import type * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { checkHealth, extractBook } from "./api";
 import { Reader } from "./Reader";
-import { loadLibrary, removeEntry, saveLibrary, upsertEntry } from "./storage";
+import { loadLibrary, removeEntry, renameEntry, saveLibrary, upsertEntry } from "./storage";
 import type { Book, FlatPara, LibraryEntry } from "./types";
+import logoUrl from "./assets/logo.svg";
 import "./App.css";
 
 const DEFAULT_VOICE = "pt_BR-faber-medium";
@@ -32,6 +34,8 @@ export default function App() {
   const [book, setBook] = useState<Book | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
 
   const entryIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -119,12 +123,52 @@ export default function App() {
     }
   }
 
+  function startRename(ev: React.MouseEvent, e: LibraryEntry) {
+    ev.stopPropagation();
+    setEditingId(e.id);
+    setDraft(e.title);
+  }
+
+  function commitRename() {
+    if (!editingId) return;
+    const title = draft.trim();
+    if (title) {
+      setLibrary(renameEntry(editingId, title));
+      setEntry((prev) => (prev && prev.id === editingId ? { ...prev, title } : prev));
+    }
+    setEditingId(null);
+  }
+
+  const win = getCurrentWindow();
+
   return (
-    <div className="app">
+    <div className="root">
+      <div className="titlebar" data-tauri-drag-region>
+        <div className="tb-brand" data-tauri-drag-region>
+          <img src={logoUrl} className="tb-logo" alt="" draggable={false} />
+          <span>incipit</span>
+        </div>
+        <div className="tb-controls">
+          <button className="tb-btn" onClick={() => win.minimize()} title="Minimizar" aria-label="Minimizar">
+            <svg viewBox="0 0 10 10" width="10" height="10"><path d="M0 5h10" stroke="currentColor" strokeWidth="1.2" /></svg>
+          </button>
+          <button className="tb-btn" onClick={() => win.toggleMaximize()} title="Maximizar" aria-label="Maximizar">
+            <svg viewBox="0 0 10 10" width="10" height="10"><rect x="0.6" y="0.6" width="8.8" height="8.8" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+          </button>
+          <button className="tb-btn close" onClick={() => win.close()} title="Fechar" aria-label="Fechar">
+            <svg viewBox="0 0 10 10" width="10" height="10"><path d="M0 0l10 10M10 0L0 10" stroke="currentColor" strokeWidth="1.2" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <span className="logo">incipit</span>
-          <small>leitor por voz</small>
+          <img src={logoUrl} className="brand-logo" alt="" draggable={false} />
+          <div className="brand-text">
+            <span className="logo">incipit</span>
+            <small>leitor por voz</small>
+          </div>
         </div>
 
         <button className="open-btn" onClick={pickFile} disabled={busy}>
@@ -142,15 +186,37 @@ export default function App() {
                 onClick={() => openBookFromPath(e.path, e)}
               >
                 <div className="lib-info">
-                  <span className="lib-title">{e.title}</span>
+                  {editingId === e.id ? (
+                    <input
+                      className="lib-edit"
+                      value={draft}
+                      autoFocus
+                      onClick={(ev) => ev.stopPropagation()}
+                      onChange={(ev) => setDraft(ev.target.value)}
+                      onBlur={commitRename}
+                      onKeyDown={(ev) => {
+                        if (ev.key === "Enter") commitRename();
+                        if (ev.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                  ) : (
+                    <span className="lib-title" onDoubleClick={(ev) => startRename(ev, e)}>
+                      {e.title}
+                    </span>
+                  )}
                   {e.author && <span className="lib-author">{e.author}</span>}
                   <span className="lib-progress">
                     {e.format.toUpperCase()} · {pct}%
                   </span>
                 </div>
-                <button className="lib-del" onClick={(ev) => deleteEntry(ev, e.id)} title="Remover">
-                  ✕
-                </button>
+                <div className="lib-actions">
+                  <button className="lib-icon" onClick={(ev) => startRename(ev, e)} title="Renomear">
+                    ✎
+                  </button>
+                  <button className="lib-icon del" onClick={(ev) => deleteEntry(ev, e.id)} title="Remover">
+                    ✕
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -190,6 +256,7 @@ export default function App() {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 }

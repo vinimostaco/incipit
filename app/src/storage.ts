@@ -25,6 +25,12 @@ export function upsertEntry(entry: LibraryEntry): LibraryEntry[] {
   return lib;
 }
 
+export function renameEntry(id: string, title: string): LibraryEntry[] {
+  const lib = loadLibrary().map((e) => (e.id === id ? { ...e, title } : e));
+  saveLibrary(lib);
+  return lib;
+}
+
 export function removeEntry(id: string): LibraryEntry[] {
   const lib = loadLibrary().filter((e) => e.id !== id);
   saveLibrary(lib);

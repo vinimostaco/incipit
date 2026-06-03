@@ -26,13 +26,71 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--bg);
   color: var(--text);
+  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
+}
+
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* --------------------------- Titlebar (custom) --------------------------- */
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  flex: 0 0 36px;
+  padding-left: 0.8rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+.tb-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-dim);
+}
+.tb-logo {
+  width: 18px;
+  height: 18px;
+}
+.tb-controls {
+  display: flex;
+  height: 100%;
+}
+.tb-btn {
+  width: 46px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.tb-btn:hover {
+  background: var(--bg-elev);
+  color: var(--text);
+}
+.tb-btn.close:hover {
+  background: #c0392b;
+  color: #fff;
 }
 
 .app {
   display: grid;
   grid-template-columns: 280px 1fr;
-  height: 100vh;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -47,6 +105,16 @@ body {
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+}
+.brand-text {
   display: flex;
   flex-direction: column;
 }
@@ -128,18 +196,42 @@ body {
   font-size: 0.78rem;
   color: var(--text-dim);
 }
-.lib-del {
+.lib-edit {
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  padding: 0.2rem 0.4rem;
+  font: inherit;
+  font-weight: 600;
+  width: 100%;
+}
+.lib-edit:focus {
+  outline: none;
+}
+.lib-actions {
+  display: flex;
+  gap: 0.15rem;
+  opacity: 0;
+}
+.lib-item:hover .lib-actions {
+  opacity: 1;
+}
+.lib-icon {
   background: none;
   border: none;
   color: var(--text-dim);
   cursor: pointer;
   font-size: 0.9rem;
-  opacity: 0;
+  padding: 0.2rem 0.3rem;
+  border-radius: 5px;
+  line-height: 1;
 }
-.lib-item:hover .lib-del {
-  opacity: 1;
+.lib-icon:hover {
+  background: var(--bg);
+  color: var(--accent);
 }
-.lib-del:hover {
+.lib-icon.del:hover {
   color: var(--danger);
 }
 
@@ -221,13 +313,33 @@ body {
 }
 
 select {
-  background: var(--bg-elev);
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: var(--bg-elev);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23d8a657' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 0.4rem 0.5rem;
+  padding: 0.45rem 1.8rem 0.45rem 0.65rem;
   font-size: 0.85rem;
+  font-weight: 500;
   cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+select:hover {
+  border-color: var(--accent);
+  background-color: var(--bg);
+}
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+select option {
+  background: var(--bg-elev);
+  color: var(--text);
 }
 
 .pregen-actions {
