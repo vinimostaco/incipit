@@ -65,6 +65,13 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(Backend::default())
         .setup(|app| {
+            // Define o ícone da janela (barra de tarefas no Linux usa _NET_WM_ICON;
+            // sem isso o WM mostra um ícone genérico).
+            if let Some(window) = app.get_webview_window("main") {
+                if let Ok(icon) = tauri::image::Image::from_bytes(include_bytes!("../icons/icon.png")) {
+                    let _ = window.set_icon(icon);
+                }
+            }
             spawn_backend(app.handle());
             Ok(())
         })
