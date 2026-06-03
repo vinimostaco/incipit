@@ -6,6 +6,16 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "dialog:default"
+    "dialog:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/incipit-backend",
+          "sidecar": true,
+          "args": true
+        }
+      ]
+    }
   ]
 }

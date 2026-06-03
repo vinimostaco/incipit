@@ -167,8 +167,8 @@ export default function App() {
         {error && <div className="banner error">{error}</div>}
         {backendUp === false && (
           <div className="banner warn">
-            Backend offline. No diretório <code>backend</code> rode:{" "}
-            <code>uv run uvicorn main:app --port 8765</code>
+            Backend offline — ele sobe junto com o app e pode levar alguns
+            segundos para iniciar. Se persistir, reabra o app.
           </div>
         )}
 

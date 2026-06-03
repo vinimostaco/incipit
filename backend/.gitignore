@@ -1,0 +1,7 @@
+# venvs (dev e build do sidecar)
+.venv/
+.venv-build/
+
+# artefatos do PyInstaller
+build/
+dist/
