@@ -7,7 +7,7 @@ from fastapi.responses import Response
 
 from . import extract as extract_mod
 from .models import Book, ExtractRequest, PregenRequest, PregenStatus, TTSRequest
-from .tts import AVAILABLE_ENGINES, get_engine, synth_lock
+from .tts import AVAILABLE_ENGINES, get_engine, synth_lock_for
 from .tts import cache as tts_cache
 from .tts import pregen
 
@@ -50,7 +50,7 @@ def tts_endpoint(req: TTSRequest) -> Response:
     if audio is None:
         try:
             engine = get_engine(req.engine)
-            with synth_lock:
+            with synth_lock_for(req.engine):
                 audio = engine.synthesize(
                     text, voice=req.voice, language=req.language, speed=req.speed
                 )

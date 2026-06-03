@@ -4,8 +4,9 @@ Sintetiza antecipadamente um conjunto de parágrafos (capítulo ou livro) e
 preenche o cache em disco, para que a escuta depois seja cache hit instantâneo.
 Pensado para o XTTS, que em CPU não acompanha a escuta em tempo real.
 
-Cada job roda em sua própria thread; a síntese em si é serializada pelo
-`synth_lock` global, então a interação JIT do usuário intercala entre itens.
+Cada job roda em sua própria thread; a síntese é serializada por um lock do
+*mesmo* engine, então a escuta JIT do usuário intercala entre os itens — e um
+engine diferente (ex.: Piper) nunca espera atrás da pré-geração do XTTS.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import uuid
 from dataclasses import dataclass
 
 from . import cache as tts_cache
-from . import get_engine, synth_lock
+from . import get_engine, synth_lock_for
 
 
 @dataclass
@@ -74,13 +75,14 @@ def _run(job: PregenJob, items: list[tuple[str, str]], language: str, speed: flo
         job.status, job.error = "error", str(e)
         return
 
+    lock = synth_lock_for(job.engine)
     for text, key in items:
         if job.id in _cancel:
             job.status = "cancelled"
             break
         if tts_cache.get(key) is None:
             try:
-                with synth_lock:
+                with lock:
                     audio = engine.synthesize(
                         text, voice=job.voice, language=language, speed=speed
                     )

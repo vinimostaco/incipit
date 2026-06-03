@@ -34,6 +34,18 @@ export function usePlayer({ paras, engine, voice, startIndex, onIndexChange }: O
   // globalIndex -> objectURL do áudio já sintetizado
   const cacheRef = useRef<Map<number, string>>(new Map());
   const inflightRef = useRef<Map<number, Promise<string>>>(new Map());
+  // globalIndex -> AbortController da requisição /tts em voo (para cancelar)
+  const abortRef = useRef<Map<number, AbortController>>(new Map());
+
+  // Aborta requisições /tts em voo que casem com o predicado (libera o backend).
+  const abortInflight = useCallback((keep?: (i: number) => boolean) => {
+    for (const [i, ctrl] of abortRef.current) {
+      if (keep && keep(i)) continue;
+      ctrl.abort();
+      abortRef.current.delete(i);
+      inflightRef.current.delete(i);
+    }
+  }, []);
 
   const getAudioUrl = useCallback(
     async (i: number): Promise<string> => {
@@ -42,12 +54,18 @@ export function usePlayer({ paras, engine, voice, startIndex, onIndexChange }: O
       const pending = inflightRef.current.get(i);
       if (pending) return pending;
 
-      const p = synthesize(paras[i].text, engine, voice).then((blob) => {
-        const url = URL.createObjectURL(blob);
-        cacheRef.current.set(i, url);
-        inflightRef.current.delete(i);
-        return url;
-      });
+      const ctrl = new AbortController();
+      abortRef.current.set(i, ctrl);
+      const p = synthesize(paras[i].text, engine, voice, ctrl.signal)
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          cacheRef.current.set(i, url);
+          return url;
+        })
+        .finally(() => {
+          inflightRef.current.delete(i);
+          abortRef.current.delete(i);
+        });
       inflightRef.current.set(i, p);
       return p;
     },
@@ -82,6 +100,8 @@ export function usePlayer({ paras, engine, voice, startIndex, onIndexChange }: O
         if (autoplay) await audio.play();
         prefetch(i);
       } catch (e) {
+        // Requisição cancelada (pause/troca de engine) não é erro real.
+        if (e instanceof DOMException && e.name === "AbortError") return;
         setError(e instanceof Error ? e.message : "Falha ao gerar áudio");
         setIsPlaying(false);
       } finally {
@@ -113,8 +133,11 @@ export function usePlayer({ paras, engine, voice, startIndex, onIndexChange }: O
       else await audio.play().catch(() => {});
     } else {
       audio.pause();
+      // Ao pausar, cancela o prefetch em voo (mantém só o parágrafo atual) para
+      // não segurar o backend ocupado enquanto a escuta está parada.
+      abortInflight((i) => i === indexRef.current);
     }
-  }, [load]);
+  }, [load, abortInflight]);
 
   const seek = useCallback((fraction: number) => {
     const audio = audioRef.current!;
@@ -152,6 +175,7 @@ export function usePlayer({ paras, engine, voice, startIndex, onIndexChange }: O
   useEffect(() => {
     const cache = cacheRef.current;
     const inflight = inflightRef.current;
+    const aborts = abortRef.current;
     return () => {
       const audio = audioRef.current;
       if (audio) {
@@ -159,6 +183,10 @@ export function usePlayer({ paras, engine, voice, startIndex, onIndexChange }: O
         audio.removeAttribute("src");
         audio.load();
       }
+      // Aborta os /tts em voo do engine/voz antigos — senão resolvem depois e
+      // poluem o cache (indexado só por parágrafo) com áudio do engine errado.
+      for (const ctrl of aborts.values()) ctrl.abort();
+      aborts.clear();
       for (const url of cache.values()) URL.revokeObjectURL(url);
       cache.clear();
       inflight.clear();

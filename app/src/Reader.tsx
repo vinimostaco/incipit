@@ -92,14 +92,24 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
 
   const pregenRunning = pregen?.status === "running";
 
+  // A pré-geração é específica de um engine/voz; ao trocar, cancela a que roda
+  // (não serve mais) e limpa a barra de progresso.
+  function stopPregen() {
+    if (pregen?.status === "running") pregenCancel(pregen.id);
+    setPregen(null);
+    setPregenErr(null);
+  }
+
   function changeEngine(e: string) {
     const v = e === "piper" ? voice ?? PIPER_VOICES[0].id : null;
+    stopPregen();
     setEngine(e);
     setVoice(v);
     onSettings(e, v);
   }
 
   function changeVoice(v: string) {
+    stopPregen();
     setVoice(v);
     onSettings(engine, v);
   }

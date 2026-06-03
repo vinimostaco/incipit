@@ -33,11 +33,13 @@ export async function synthesize(
   text: string,
   engine: string,
   voice: string | null,
+  signal?: AbortSignal,
 ): Promise<Blob> {
   const r = await fetch(`${BASE}/tts`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ text, engine, voice, language: "pt", speed: 1.0 }),
+    signal,
   });
   if (!r.ok) await detailError(r);
   return r.blob();
