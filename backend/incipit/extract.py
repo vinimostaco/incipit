@@ -112,6 +112,30 @@ def _pdf_chapters_from_outline(reader) -> list[Chapter]:
 # --------------------------------------------------------------------------- #
 # EPUB
 # --------------------------------------------------------------------------- #
+# Tags de bloco que costumam delimitar um parágrafo. Não basta <p>: muitos
+# EPUBs (ex.: convertidos pelo Calibre) usam <blockquote> ou <li> no corpo.
+_EPUB_BLOCK_TAGS = ["p", "blockquote", "li"]
+
+
+def _epub_paragraphs(soup) -> list[str]:
+    """Coleta os parágrafos de um documento EPUB de forma robusta a estruturas
+    atípicas (texto em <blockquote>/<li>, não só <p>)."""
+    body = soup.body or soup
+    out: list[str] = []
+    for block in body.find_all(_EPUB_BLOCK_TAGS):
+        # mantém só blocos "folha": se aninha outro bloco, é container -> pula
+        if block.find(_EPUB_BLOCK_TAGS):
+            continue
+        txt = _WS.sub(" ", block.get_text(" ", strip=True)).strip()
+        if txt:
+            out.append(txt)
+    if not out:
+        # nenhum bloco reconhecido: quebra o texto cru do corpo por linhas
+        raw = body.get_text("\n", strip=True)
+        out = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    return out
+
+
 def extract_epub(path: Path) -> Book:
     import ebooklib
     from bs4 import BeautifulSoup
@@ -135,12 +159,7 @@ def extract_epub(path: Path) -> Book:
         heading = soup.find(["h1", "h2", "h3"])
         ch_title = heading.get_text(strip=True) if heading else None
 
-        paras: list[Paragraph] = []
-        for p in soup.find_all("p"):
-            txt = _WS.sub(" ", p.get_text(" ", strip=True)).strip()
-            if txt:
-                paras.append(Paragraph(index=len(paras), text=txt))
-
+        paras = [Paragraph(index=i, text=t) for i, t in enumerate(_epub_paragraphs(soup))]
         if paras:
             chapters.append(Chapter(index=len(chapters), title=ch_title, paragraphs=paras))
 
