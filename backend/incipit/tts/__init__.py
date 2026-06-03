@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import threading
 from functools import lru_cache
 
 from .base import TTSEngine
 
 AVAILABLE_ENGINES = ["piper", "xtts"]
+
+# Serializa toda síntese (JIT e pré-geração) para nunca rodar dois forwards do
+# mesmo modelo em paralelo — crítico para o XTTS, pesado em CPU.
+synth_lock = threading.Lock()
 
 
 @lru_cache(maxsize=None)

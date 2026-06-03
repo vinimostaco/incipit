@@ -6,11 +6,18 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
 from . import extract as extract_mod
-from .models import Book, ExtractRequest, TTSRequest
-from .tts import AVAILABLE_ENGINES, get_engine
+from .models import Book, ExtractRequest, PregenRequest, PregenStatus, TTSRequest
+from .tts import AVAILABLE_ENGINES, get_engine, synth_lock
 from .tts import cache as tts_cache
+from .tts import pregen
 
 router = APIRouter()
+
+
+def _job_status(job) -> PregenStatus:
+    return PregenStatus(
+        id=job.id, status=job.status, done=job.done, total=job.total, error=job.error
+    )
 
 
 @router.post("/extract", response_model=Book)
@@ -43,9 +50,10 @@ def tts_endpoint(req: TTSRequest) -> Response:
     if audio is None:
         try:
             engine = get_engine(req.engine)
-            audio = engine.synthesize(
-                text, voice=req.voice, language=req.language, speed=req.speed
-            )
+            with synth_lock:
+                audio = engine.synthesize(
+                    text, voice=req.voice, language=req.language, speed=req.speed
+                )
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         except RuntimeError as e:
@@ -59,3 +67,25 @@ def tts_endpoint(req: TTSRequest) -> Response:
         media_type="audio/wav",
         headers={"X-Cache": "hit" if cached else "miss", "X-Cache-Key": key},
     )
+
+
+@router.post("/tts/pregenerate", response_model=PregenStatus)
+def pregenerate(req: PregenRequest) -> PregenStatus:
+    if not req.texts:
+        raise HTTPException(status_code=400, detail="Lista de textos vazia.")
+    job = pregen.start_job(req.engine, req.voice, req.texts, req.language, req.speed)
+    return _job_status(job)
+
+
+@router.get("/tts/pregenerate/{job_id}", response_model=PregenStatus)
+def pregenerate_status(job_id: str) -> PregenStatus:
+    job = pregen.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job de pré-geração não encontrado.")
+    return _job_status(job)
+
+
+@router.delete("/tts/pregenerate/{job_id}")
+def pregenerate_cancel(job_id: str) -> dict:
+    pregen.cancel_job(job_id)
+    return {"cancelled": True}

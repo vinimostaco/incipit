@@ -2,6 +2,7 @@
 import type * as React from "react";
 import { useEffect, useRef, useState } from "react";
 
+import { pregenCancel, pregenStatus, pregenerate, type PregenStatus } from "./api";
 import { usePlayer } from "./usePlayer";
 import type { FlatPara, LibraryEntry } from "./types";
 
@@ -38,6 +39,9 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
     onIndexChange: onProgress,
   });
 
+  const [pregen, setPregen] = useState<PregenStatus | null>(null);
+  const [pregenErr, setPregenErr] = useState<string | null>(null);
+
   const listRef = useRef<HTMLDivElement>(null);
 
   // Mantém o parágrafo atual visível.
@@ -45,6 +49,48 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${player.index}"]`);
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [player.index]);
+
+  // Acompanha o progresso de um job de pré-geração.
+  useEffect(() => {
+    if (!pregen || pregen.status !== "running") return;
+    const id = pregen.id;
+    const t = setInterval(async () => {
+      try {
+        setPregen(await pregenStatus(id));
+      } catch {
+        /* mantém o último estado em caso de falha transitória */
+      }
+    }, 1000);
+    return () => clearInterval(t);
+  }, [pregen?.id, pregen?.status]);
+
+  // Some com a barra alguns segundos depois de concluir.
+  useEffect(() => {
+    if (pregen?.status !== "done") return;
+    const t = setTimeout(() => setPregen(null), 5000);
+    return () => clearTimeout(t);
+  }, [pregen?.status]);
+
+  async function startPregen(scope: "chapter" | "book") {
+    setPregenErr(null);
+    const texts =
+      scope === "book"
+        ? paras.map((p) => p.text)
+        : paras
+            .filter((p) => p.chapterIndex === paras[player.index]?.chapterIndex)
+            .map((p) => p.text);
+    try {
+      setPregen(await pregenerate(texts, engine, voice));
+    } catch (e) {
+      setPregenErr(e instanceof Error ? e.message : "Falha ao iniciar a pré-geração");
+    }
+  }
+
+  function cancelPregen() {
+    if (pregen) pregenCancel(pregen.id);
+  }
+
+  const pregenRunning = pregen?.status === "running";
 
   function changeEngine(e: string) {
     const v = e === "piper" ? voice ?? PIPER_VOICES[0].id : null;
@@ -89,8 +135,44 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
               ))}
             </select>
           )}
+          <div className="pregen-actions" title="Gerar o áudio antecipadamente para escuta sem pausas (essencial no XTTS)">
+            <span>Pré-gerar:</span>
+            <button onClick={() => startPregen("chapter")} disabled={pregenRunning}>
+              Capítulo
+            </button>
+            <button onClick={() => startPregen("book")} disabled={pregenRunning}>
+              Livro
+            </button>
+          </div>
         </div>
       </header>
+
+      {(pregen || pregenErr) && (
+        <div className="pregen-bar">
+          {pregenErr && <span className="pregen-err">{pregenErr}</span>}
+          {pregenRunning && (
+            <>
+              <span className="pregen-label">
+                Pré-gerando voz… {pregen!.done}/{pregen!.total}
+              </span>
+              <div className="pregen-track">
+                <div
+                  className="pregen-fill"
+                  style={{ width: `${pregen!.total ? (pregen!.done / pregen!.total) * 100 : 0}%` }}
+                />
+              </div>
+              <button onClick={cancelPregen}>Cancelar</button>
+            </>
+          )}
+          {pregen?.status === "done" && (
+            <span className="pregen-done">✓ Áudio pronto — escuta sem pausas</span>
+          )}
+          {pregen?.status === "cancelled" && <span>Pré-geração cancelada.</span>}
+          {pregen?.status === "error" && (
+            <span className="pregen-err">Erro na pré-geração: {pregen.error}</span>
+          )}
+        </div>
+      )}
 
       <div className="paras" ref={listRef}>
         {paras.length === 0 && <p className="empty">Nenhum texto extraído deste arquivo.</p>}

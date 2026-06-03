@@ -37,3 +37,19 @@ class TTSRequest(BaseModel):
     voice: str | None = None
     language: str = "pt"
     speed: float = 1.0
+
+
+class PregenRequest(BaseModel):
+    texts: list[str]
+    engine: str = "piper"
+    voice: str | None = None
+    language: str = "pt"
+    speed: float = 1.0
+
+
+class PregenStatus(BaseModel):
+    id: str
+    status: str
+    done: int
+    total: int
+    error: str | None = None

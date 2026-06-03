@@ -42,3 +42,35 @@ export async function synthesize(
   if (!r.ok) await detailError(r);
   return r.blob();
 }
+
+export interface PregenStatus {
+  id: string;
+  status: "running" | "done" | "cancelled" | "error";
+  done: number;
+  total: number;
+  error: string | null;
+}
+
+export async function pregenerate(
+  texts: string[],
+  engine: string,
+  voice: string | null,
+): Promise<PregenStatus> {
+  const r = await fetch(`${BASE}/tts/pregenerate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texts, engine, voice, language: "pt", speed: 1.0 }),
+  });
+  if (!r.ok) await detailError(r);
+  return r.json();
+}
+
+export async function pregenStatus(id: string): Promise<PregenStatus> {
+  const r = await fetch(`${BASE}/tts/pregenerate/${id}`);
+  if (!r.ok) await detailError(r);
+  return r.json();
+}
+
+export async function pregenCancel(id: string): Promise<void> {
+  await fetch(`${BASE}/tts/pregenerate/${id}`, { method: "DELETE" }).catch(() => {});
+}
