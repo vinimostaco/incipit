@@ -1,0 +1,13 @@
+[project]
+name = "incipit-backend"
+version = "0.1.0"
+description = "Serviço local de extração de texto e TTS para o app incipit."
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "vinimostaco", email = "vini.mostaco@gmail.com" }]
+dependencies = [
+    "ebooklib>=0.20",
+    "fastapi>=0.136.3",
+    "pypdf>=6.12.2",
+    "uvicorn[standard]>=0.48.0",
+]
