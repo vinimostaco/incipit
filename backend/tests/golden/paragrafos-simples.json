@@ -1,0 +1,53 @@
+{
+  "author": "Fixture do incipit",
+  "chapters": [
+    {
+      "index": 0,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Havia no fundo do quintal uma figueira que ninguem plantou. Ela\n simplesmente estava la, mais velha que a casa e mais teimosa que o muro."
+        },
+        {
+          "index": 1,
+          "text": "Meu avo dizia que arvore nascida sozinha nao se poda. Nunca explicou o\n motivo, e nunca precisou: bastava o tom com que dizia."
+        },
+        {
+          "index": 2,
+          "text": "No verao a figueira dava sombra suficiente para tres cadeiras. No\n inverno dava galho seco, que meu avo recolhia sem reclamar."
+        }
+      ],
+      "title": "Primeira parte"
+    },
+    {
+      "index": 1,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Quando o muro caiu, ninguem culpou a figueira. Culparam a chuva, que\n era mais facil de culpar e nao morava no quintal."
+        },
+        {
+          "index": 1,
+          "text": "Levantamos o muro dois metros adiante, contornando a raiz. A figueira\n ficou, entao, com um pedaco de calcada so dela."
+        }
+      ],
+      "title": "Segunda parte"
+    },
+    {
+      "index": 2,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Primeira parte"
+        },
+        {
+          "index": 1,
+          "text": "Segunda parte"
+        }
+      ],
+      "title": "A figueira do quintal"
+    }
+  ],
+  "source_format": "epub",
+  "title": "A figueira do quintal"
+}

@@ -46,6 +46,10 @@ class PiperEngine(TTSEngine):
             if voice not in self._voices:
                 model = MODELS_DIR / f"{voice}.onnx"
                 if not model.is_file():
+                    # `download_voice` grava direto em MODELS_DIR e não cria o
+                    # diretório; ele é criado aqui, na primeira voz carregada,
+                    # em vez de no import de `config`.
+                    MODELS_DIR.mkdir(parents=True, exist_ok=True)
                     download_voice(voice, MODELS_DIR)
                 self._voices[voice] = PiperVoice.load(str(model), f"{model}.json")
             return self._voices[voice]

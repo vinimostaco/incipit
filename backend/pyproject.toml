@@ -27,3 +27,15 @@ xtts = [
     "torch>=2.2,<2.9",
     "torchaudio>=2.2,<2.9",
 ]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# `.` põe main.py (o app ASGI) no path do teste de contrato.
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

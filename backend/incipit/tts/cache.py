@@ -29,6 +29,10 @@ def get(key: str) -> bytes | None:
 
 def put(key: str, data: bytes) -> Path:
     p = cache_path(key)
+    # O diretório é criado aqui, e não no import de `config`: gravar é o que
+    # justifica o efeito colateral. `exist_ok` cobre a concorrência entre a
+    # escuta JIT e a thread de pré-geração gravando ao mesmo tempo.
+    p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".wav.part")
     tmp.write_bytes(data)
     tmp.replace(p)

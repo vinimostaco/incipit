@@ -1,0 +1,81 @@
+{
+  "author": "Fixture do incipit",
+  "chapters": [
+    {
+      "index": 0,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Ler em voz alta e uma tecnologia antiga o bastante para parecer\n natural, e recente o bastante para ainda estar em disputa."
+        },
+        {
+          "index": 1,
+          "text": "Quem le em voz alta le duas vezes: uma com os olhos, outra com o\n folego."
+        },
+        {
+          "index": 2,
+          "text": "A citacao acima esta dentro de um bloco que contem outro bloco. O\n extrator precisa decidir qual dos dois e a folha."
+        },
+        {
+          "index": 3,
+          "text": "Uma citacao curta, sem paragrafo por dentro."
+        },
+        {
+          "index": 4,
+          "text": "Os requisitos de uma sessao longa de escuta sao poucos e teimosos:"
+        },
+        {
+          "index": 5,
+          "text": "o audio nao pode engasgar entre paragrafos;"
+        },
+        {
+          "index": 6,
+          "text": "a primeira frase precisa soar rapido;"
+        },
+        {
+          "index": 7,
+          "text": "o app nao pode morrer no meio do livro."
+        },
+        {
+          "index": 8,
+          "text": "Cada item acima e um bloco folha independente."
+        }
+      ],
+      "title": "Sobre a leitura em voz alta"
+    },
+    {
+      "index": 1,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "A primeira nota trata de uma edicao que nunca existiu."
+        },
+        {
+          "index": 1,
+          "text": "A segunda nota corrige a primeira."
+        },
+        {
+          "index": 2,
+          "text": "A terceira nota foi perdida, e por isso e a mais citada."
+        }
+      ],
+      "title": "Notas de rodape do capitulo"
+    },
+    {
+      "index": 2,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Sobre a leitura em voz alta"
+        },
+        {
+          "index": 1,
+          "text": "Notas de rodape do capitulo"
+        }
+      ],
+      "title": "Notas sobre leitura em voz alta"
+    }
+  ],
+  "source_format": "epub",
+  "title": "Notas sobre leitura em voz alta"
+}
