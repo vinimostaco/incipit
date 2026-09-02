@@ -1,0 +1,49 @@
+{
+  "author": "Fixture do incipit",
+  "chapters": [
+    {
+      "index": 0,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Capitulo I - A casa vazia A casa que herdei tinha treze janelas e nenhuma cortina. Os primeiros dias foram de inventario: contei os degraus, contei as macanetas, contei ate as rachaduras do reboco, como quem procura um erro de soma que explique o resto."
+        },
+        {
+          "index": 1,
+          "text": "Foi so na terceira noite que reparei no silencio. Nao era a ausencia de som; era um som proprio, espesso, que se acomodava nos comodos vazios como poeira."
+        }
+      ],
+      "title": "Capitulo I - A casa vazia"
+    },
+    {
+      "index": 1,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Capitulo II - O inventario Meu tio guardava tudo em caixas de charuto: recibos, botoes, uma chave sem fechadura conhecida. Abri as caixas em ordem alfabetica, porque ele as havia rotulado, e porque nao me ocorreu outra ordem."
+        },
+        {
+          "index": 1,
+          "text": "Na caixa marcada com a letra M encontrei um bilhete dobrado em quatro. Dizia apenas: nao venda a casa antes de dezembro. Nao havia assinatura, nem ano."
+        }
+      ],
+      "title": "Capitulo II - O inventario"
+    },
+    {
+      "index": 2,
+      "paragraphs": [
+        {
+          "index": 0,
+          "text": "Capitulo III - Dezembro Esperei. Nao por obediencia, mas porque esperar era, naquele momento, a unica coisa que a casa me pedia com clareza."
+        },
+        {
+          "index": 1,
+          "text": "Em dezembro as treze janelas amanheceram embacadas ao mesmo tempo, e entendi o bilhete. Ou pelo menos entendi o bastante para nao vender a casa."
+        }
+      ],
+      "title": "Capitulo III - Dezembro"
+    }
+  ],
+  "source_format": "pdf",
+  "title": "A casa de treze janelas"
+}
