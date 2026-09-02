@@ -1,4 +1,3 @@
-import type * as React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -7,10 +6,18 @@ import { checkHealth, extractBook } from "./api";
 import { Reader } from "./Reader";
 import { loadLibrary, removeEntry, renameEntry, saveLibrary, upsertEntry } from "./storage";
 import type { Book, FlatPara, LibraryEntry } from "./types";
+import { ExtractSkeleton, Notice } from "./ui";
 import logoUrl from "./assets/logo.svg";
 import "./App.css";
 
 const DEFAULT_VOICE = "pt_BR-faber-medium";
+
+// Estado do backend em texto — nunca só na cor do ponto (critério 5).
+const BACKEND_STATE = {
+  checking: { className: "checking", label: "verificando backend…" },
+  up: { className: "up", label: "backend online" },
+  down: { className: "down", label: "backend offline" },
+} as const;
 
 function flatten(book: Book): FlatPara[] {
   const out: FlatPara[] = [];
@@ -36,6 +43,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const entryIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -43,6 +51,15 @@ export default function App() {
   }, [entry]);
 
   useEffect(() => setLibrary(loadLibrary()), []);
+
+  // O drawer da biblioteca fecha no Esc — quem navega por teclado não fica
+  // preso atrás dele.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (ev: KeyboardEvent) => ev.key === "Escape" && setDrawerOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [drawerOpen]);
 
   // Monitora o backend (sobe via `uv run uvicorn main:app` no diretório backend).
   useEffect(() => {
@@ -61,6 +78,7 @@ export default function App() {
   const openBookFromPath = useCallback(async (path: string, existing?: LibraryEntry) => {
     setBusy(true);
     setError(null);
+    setDrawerOpen(false);
     try {
       const b = await extractBook(path);
       const flat = flatten(b);
@@ -114,8 +132,7 @@ export default function App() {
     });
   }, []);
 
-  function deleteEntry(ev: React.MouseEvent, id: string) {
-    ev.stopPropagation();
+  function deleteEntry(id: string) {
     setLibrary(removeEntry(id));
     if (entryIdRef.current === id) {
       setEntry(null);
@@ -123,8 +140,7 @@ export default function App() {
     }
   }
 
-  function startRename(ev: React.MouseEvent, e: LibraryEntry) {
-    ev.stopPropagation();
+  function startRename(e: LibraryEntry) {
     setEditingId(e.id);
     setDraft(e.title);
   }
@@ -140,6 +156,7 @@ export default function App() {
   }
 
   const win = getCurrentWindow();
+  const backend = BACKEND_STATE[backendUp == null ? "checking" : backendUp ? "up" : "down"];
 
   return (
     <div className="root">
@@ -162,36 +179,36 @@ export default function App() {
       </div>
 
       <div className="app">
-      <aside className="sidebar">
-        <div className="brand">
-          <img src={logoUrl} className="brand-logo" alt="" draggable={false} />
-          <div className="brand-text">
-            <span className="logo">incipit</span>
-            <small>leitor por voz</small>
+        <aside id="library" className={`sidebar${drawerOpen ? " open" : ""}`}>
+          <div className="brand">
+            <img src={logoUrl} className="brand-logo" alt="" draggable={false} />
+            <div className="brand-text">
+              <span className="logo">incipit</span>
+              <small>leitor por voz</small>
+            </div>
           </div>
-        </div>
 
-        <button className="open-btn" onClick={pickFile} disabled={busy}>
-          {busy ? "Abrindo…" : "+ Abrir livro"}
-        </button>
+          <button className="open-btn" onClick={pickFile} disabled={busy}>
+            {busy ? "Abrindo…" : "+ Abrir livro"}
+          </button>
 
-        <div className="lib">
-          {library.length === 0 && <p className="lib-empty">Sua biblioteca está vazia.</p>}
-          {library.map((e) => {
-            const pct = e.totalParas ? Math.round((e.progressIndex / e.totalParas) * 100) : 0;
-            return (
-              <div
-                key={e.id}
-                className={`lib-item${entry?.id === e.id ? " active" : ""}`}
-                onClick={() => openBookFromPath(e.path, e)}
-              >
-                <div className="lib-info">
+          <ul className="lib">
+            {library.length === 0 && (
+              <li className="lib-empty">
+                <strong>Sua biblioteca está vazia.</strong>
+                Abra um PDF ou EPUB e ele fica guardado aqui, com o ponto onde você parou.
+              </li>
+            )}
+            {library.map((e) => {
+              const pct = e.totalParas ? Math.round((e.progressIndex / e.totalParas) * 100) : 0;
+              return (
+                <li key={e.id} className={`lib-item${entry?.id === e.id ? " active" : ""}`}>
                   {editingId === e.id ? (
                     <input
                       className="lib-edit"
                       value={draft}
                       autoFocus
-                      onClick={(ev) => ev.stopPropagation()}
+                      aria-label="Novo título do livro"
                       onChange={(ev) => setDraft(ev.target.value)}
                       onBlur={commitRename}
                       onKeyDown={(ev) => {
@@ -200,62 +217,113 @@ export default function App() {
                       }}
                     />
                   ) : (
-                    <span className="lib-title" onDoubleClick={(ev) => startRename(ev, e)}>
-                      {e.title}
-                    </span>
+                    <button
+                      className="lib-open"
+                      onClick={() => openBookFromPath(e.path, e)}
+                      onDoubleClick={() => startRename(e)}
+                      aria-current={entry?.id === e.id ? "true" : undefined}
+                    >
+                      <span className="lib-title">{e.title}</span>
+                      {e.author && <span className="lib-author">{e.author}</span>}
+                      <span className="lib-meta">
+                        <span className="lib-format">{e.format.toUpperCase()}</span>
+                        <span className="lib-track">
+                          <span className="lib-fill" style={{ width: `${pct}%` }} />
+                        </span>
+                        <span>{pct}% lido</span>
+                      </span>
+                    </button>
                   )}
-                  {e.author && <span className="lib-author">{e.author}</span>}
-                  <span className="lib-progress">
-                    {e.format.toUpperCase()} · {pct}%
-                  </span>
-                </div>
-                <div className="lib-actions">
-                  <button className="lib-icon" onClick={(ev) => startRename(ev, e)} title="Renomear">
-                    ✎
-                  </button>
-                  <button className="lib-icon del" onClick={(ev) => deleteEntry(ev, e.id)} title="Remover">
-                    ✕
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="lib-actions">
+                    <button
+                      className="lib-icon"
+                      onClick={() => startRename(e)}
+                      title={`Renomear ${e.title}`}
+                      aria-label={`Renomear ${e.title}`}
+                    >
+                      ✎
+                    </button>
+                    <button
+                      className="lib-icon del"
+                      onClick={() => deleteEntry(e.id)}
+                      title={`Remover ${e.title}`}
+                      aria-label={`Remover ${e.title}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
-        <div className={`backend ${backendUp ? "up" : backendUp === false ? "down" : ""}`}>
-          {backendUp == null && "verificando backend…"}
-          {backendUp === true && "● backend online"}
-          {backendUp === false && "● backend offline"}
-        </div>
-      </aside>
+          <p className={`backend ${backend.className}`} data-testid="backend-status" role="status">
+            <span className="backend-dot" aria-hidden="true" />
+            <span className="backend-label">{backend.label}</span>
+          </p>
+        </aside>
 
-      <main className="main">
-        {error && <div className="banner error">{error}</div>}
-        {backendUp === false && (
-          <div className="banner warn">
-            Backend offline — ele sobe junto com o app e pode levar alguns
-            segundos para iniciar. Se persistir, reabra o app.
-          </div>
-        )}
-
-        {entry && book ? (
-          <Reader
-            key={entry.id}
-            entry={entry}
-            paras={paras}
-            onProgress={handleProgress}
-            onSettings={handleSettings}
+        {drawerOpen && (
+          <button
+            type="button"
+            className="drawer-scrim"
+            data-testid="library-close"
+            aria-label="Fechar biblioteca"
+            onClick={() => setDrawerOpen(false)}
           />
-        ) : (
-          <div className="welcome">
-            <h1>incipit</h1>
-            <p>Abra um PDF ou EPUB para começar a ouvir.</p>
-            <button className="open-btn big" onClick={pickFile} disabled={busy}>
-              {busy ? "Abrindo…" : "+ Abrir livro"}
-            </button>
-          </div>
         )}
-      </main>
+
+        <main className="main">
+          {/* Só aparece abaixo do breakpoint, onde a biblioteca vira drawer. */}
+          <button
+            type="button"
+            className="drawer-toggle"
+            data-testid="library-toggle"
+            aria-controls="library"
+            aria-expanded={drawerOpen}
+            onClick={() => setDrawerOpen(true)}
+          >
+            <svg viewBox="0 0 14 12" width="14" height="12" aria-hidden="true">
+              <path d="M0 1h14M0 6h14M0 11h14" stroke="currentColor" strokeWidth="1.6" />
+            </svg>
+            Biblioteca
+          </button>
+
+          <div className="notices">
+            {error && (
+              <Notice kind="error" title="Não foi possível abrir o livro" onDismiss={() => setError(null)}>
+                {error}
+              </Notice>
+            )}
+            {backendUp === false && (
+              <Notice kind="warn" title="Backend offline">
+                Ele sobe junto com o app e pode levar alguns segundos para iniciar. Se persistir,
+                reabra o app.
+              </Notice>
+            )}
+          </div>
+
+          {busy ? (
+            <ExtractSkeleton />
+          ) : entry && book ? (
+            <Reader
+              key={entry.id}
+              entry={entry}
+              paras={paras}
+              onProgress={handleProgress}
+              onSettings={handleSettings}
+            />
+          ) : (
+            <div className="welcome">
+              <img src={logoUrl} className="welcome-logo" alt="" draggable={false} />
+              <h1>incipit</h1>
+              <p>Abra um PDF ou EPUB para começar a ouvir.</p>
+              <button className="open-btn big" onClick={pickFile} disabled={busy}>
+                {busy ? "Abrindo…" : "+ Abrir livro"}
+              </button>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );
