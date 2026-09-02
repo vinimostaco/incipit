@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { pregenCancel, pregenStatus, pregenerate, type PregenStatus } from "./api";
 import { usePlayer } from "./usePlayer";
 import type { FlatPara, LibraryEntry } from "./types";
+import { Notice, Spinner, prefersReducedMotion } from "./ui";
 
 const ENGINES = [
   { id: "piper", label: "Piper — rápido (recomendado)" },
@@ -19,6 +20,28 @@ const PIPER_VOICES = [
 ];
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2];
+
+// Ícones em SVG: não dependem de o sistema ter a fonte com os glifos ⏮/⏸/▶.
+const IconPrev = () => (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+    <path d="M4 2h2v12H4zM14 2v12L6.5 8z" />
+  </svg>
+);
+const IconNext = () => (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">
+    <path d="M10 2h2v12h-2zM2 2v12L9.5 8z" />
+  </svg>
+);
+const IconPlay = () => (
+  <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" fill="currentColor">
+    <path d="M3.5 1.8v12.4L14 8z" />
+  </svg>
+);
+const IconPause = () => (
+  <svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true" fill="currentColor">
+    <path d="M3.5 2h3.2v12H3.5zM9.3 2h3.2v12H9.3z" />
+  </svg>
+);
 
 interface Props {
   entry: LibraryEntry;
@@ -44,10 +67,11 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
 
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Mantém o parágrafo atual visível.
+  // Mantém o parágrafo atual visível — sem rolagem animada para quem pediu
+  // menos movimento.
   useEffect(() => {
     const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${player.index}"]`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    el?.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
   }, [player.index]);
 
   // Acompanha o progresso de um job de pré-geração.
@@ -119,7 +143,16 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
     player.seek((ev.clientX - rect.left) / rect.width);
   }
 
+  // A barra de posição também responde ao teclado (usa o mesmo player.seek).
+  function onSeekKey(ev: React.KeyboardEvent<HTMLDivElement>) {
+    const step = ev.key === "ArrowLeft" ? -0.05 : ev.key === "ArrowRight" ? 0.05 : 0;
+    if (!step) return;
+    ev.preventDefault();
+    player.seek(Math.min(1, Math.max(0, player.progress + step)));
+  }
+
   const current = paras[player.index];
+  const pregenPct = pregen?.total ? Math.round((pregen.done / pregen.total) * 100) : 0;
 
   return (
     <div className="reader">
@@ -129,58 +162,78 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
           {entry.author && <span className="author">{entry.author}</span>}
         </div>
         <div className="settings">
-          <select value={engine} onChange={(e) => changeEngine(e.target.value)} title="Motor de voz">
-            {ENGINES.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.label}
-              </option>
-            ))}
-          </select>
-          {engine === "piper" && (
-            <select value={voice ?? ""} onChange={(e) => changeVoice(e.target.value)} title="Voz">
-              {PIPER_VOICES.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.label}
+          <label className="field">
+            <span className="field-label">Motor</span>
+            <select value={engine} onChange={(e) => changeEngine(e.target.value)}>
+              {ENGINES.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.label}
                 </option>
               ))}
             </select>
+          </label>
+          {engine === "piper" && (
+            <label className="field">
+              <span className="field-label">Voz</span>
+              <select value={voice ?? ""} onChange={(e) => changeVoice(e.target.value)}>
+                {PIPER_VOICES.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
-          <div className="pregen-actions" title="Gerar o áudio antecipadamente para escuta sem pausas (essencial no XTTS)">
-            <span>Pré-gerar:</span>
-            <button onClick={() => startPregen("chapter")} disabled={pregenRunning}>
-              Capítulo
-            </button>
-            <button onClick={() => startPregen("book")} disabled={pregenRunning}>
-              Livro
-            </button>
+          <div
+            className="pregen-actions"
+            title="Gerar o áudio antecipadamente para escuta sem pausas (essencial no XTTS)"
+          >
+            <span className="field-label">Pré-gerar</span>
+            <div className="pregen-buttons">
+              <button className="btn-ghost" onClick={() => startPregen("chapter")} disabled={pregenRunning}>
+                Capítulo
+              </button>
+              <button className="btn-ghost" onClick={() => startPregen("book")} disabled={pregenRunning}>
+                Livro
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      {(pregen || pregenErr) && (
-        <div className="pregen-bar">
-          {pregenErr && <span className="pregen-err">{pregenErr}</span>}
+      {pregenErr && (
+        <Notice kind="error" title="Falha na pré-geração" onDismiss={() => setPregenErr(null)}>
+          {pregenErr}
+        </Notice>
+      )}
+
+      {pregen && (
+        <div className="pregen-bar" role="status">
           {pregenRunning && (
             <>
               <span className="pregen-label">
-                Pré-gerando voz… {pregen!.done}/{pregen!.total}
+                Pré-gerando voz — {pregen.done}/{pregen.total} ({pregenPct}%)
               </span>
-              <div className="pregen-track">
-                <div
-                  className="pregen-fill"
-                  style={{ width: `${pregen!.total ? (pregen!.done / pregen!.total) * 100 : 0}%` }}
-                />
+              <div
+                className="pregen-track"
+                role="progressbar"
+                aria-label="Progresso da pré-geração"
+                aria-valuenow={pregenPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div className="pregen-fill" style={{ width: `${pregenPct}%` }} />
               </div>
-              <button onClick={cancelPregen}>Cancelar</button>
+              <button className="btn-ghost" onClick={cancelPregen}>
+                Cancelar
+              </button>
             </>
           )}
-          {pregen?.status === "done" && (
+          {pregen.status === "done" && (
             <span className="pregen-done">✓ Áudio pronto — escuta sem pausas</span>
           )}
-          {pregen?.status === "cancelled" && <span>Pré-geração cancelada.</span>}
-          {pregen?.status === "error" && (
-            <span className="pregen-err">Erro na pré-geração: {pregen.error}</span>
-          )}
+          {pregen.status === "cancelled" && <span>Pré-geração cancelada.</span>}
+          {pregen.status === "error" && <span>Erro na pré-geração: {pregen.error}</span>}
         </div>
       )}
 
@@ -203,19 +256,37 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
         })}
       </div>
 
-      <div className="player">
-        <div className="seek" onClick={onSeekClick} title="Avançar/retroceder no parágrafo">
+      <div className="player" data-testid="player" data-loading={player.loading ? "true" : "false"}>
+        <div
+          className="seek"
+          role="slider"
+          tabIndex={0}
+          aria-label="Posição no parágrafo"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(player.progress * 100)}
+          onClick={onSeekClick}
+          onKeyDown={onSeekKey}
+          title="Avançar/retroceder no parágrafo"
+        >
           <div className="seek-fill" style={{ width: `${player.progress * 100}%` }} />
         </div>
+
         <div className="controls">
-          <button onClick={player.goPrev} title="Parágrafo anterior">
-            ⏮
+          <button onClick={player.goPrev} title="Parágrafo anterior" aria-label="Parágrafo anterior">
+            <IconPrev />
           </button>
-          <button className="play" onClick={player.togglePlay} title="Reproduzir/pausar">
-            {player.isPlaying ? "⏸" : "▶"}
+          <button
+            className="play"
+            onClick={player.togglePlay}
+            title={player.isPlaying ? "Pausar" : "Reproduzir"}
+            aria-label={player.isPlaying ? "Pausar" : "Reproduzir"}
+          >
+            {player.isPlaying ? <IconPause /> : <IconPlay />}
+            {player.loading && <span className="play-ring" aria-hidden="true" />}
           </button>
-          <button onClick={() => player.goNext(true)} title="Próximo parágrafo">
-            ⏭
+          <button onClick={() => player.goNext(true)} title="Próximo parágrafo" aria-label="Próximo parágrafo">
+            <IconNext />
           </button>
 
           <span className="pos">
@@ -223,8 +294,12 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
           </span>
 
           <label className="speed">
-            Velocidade
-            <select value={player.speed} onChange={(e) => player.changeSpeed(Number(e.target.value))}>
+            <span className="field-label">Velocidade</span>
+            <select
+              value={player.speed}
+              aria-label="Velocidade de leitura"
+              onChange={(e) => player.changeSpeed(Number(e.target.value))}
+            >
               {SPEEDS.map((s) => (
                 <option key={s} value={s}>
                   {s}×
@@ -233,11 +308,26 @@ export function Reader({ entry, paras, onProgress, onSettings }: Props) {
             </select>
           </label>
 
-          <span className="status">
-            {player.loading ? "gerando voz…" : current?.chapterTitle ?? ""}
-          </span>
+          {/* "gerando" e "tocando" ocupam slots distintos: o capítulo nunca é
+              substituído pelo aviso de carregamento. */}
+          <div className="player-now">
+            {player.loading && (
+              <span className="player-loading" data-testid="player-loading" role="status">
+                <Spinner size={14} />
+                gerando voz…
+              </span>
+            )}
+            <span className="player-chapter" data-testid="player-chapter">
+              {current?.chapterTitle ?? ""}
+            </span>
+          </div>
         </div>
-        {player.error && <div className="player-error">{player.error}</div>}
+
+        {player.error && (
+          <Notice kind="error" title="Falha ao gerar o áudio">
+            {player.error}
+          </Notice>
+        )}
       </div>
     </div>
   );
